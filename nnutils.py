@@ -50,7 +50,7 @@ def preprocess(data):
 	""" Scales the images pixels between 0 and 1."""
 	return (data[0] / 255.0, data[1])
 
-def cross_validation_data(n_validation=10000):
+def load_cross_validation_data(n_validation=10000):
 	""" Assuming we're using the mnist databse.
 	n_validation is the number of validation data wanted from the 60000
 	total training data."""
@@ -62,6 +62,11 @@ def cross_validation_data(n_validation=10000):
 		np.concatenate((d[1][:i], d[1][i+n_validation:])))
 	validation = (d[0][i:i+n_validation], d[1][i:i+n_validation])
 	return training, validation
+
+def load_final_data():
+	tr = preprocess(load_mnist('training'))
+	te = preprocess(load_mnist('testing'))
+	return tr, te
 
 
 

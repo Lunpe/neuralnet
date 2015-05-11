@@ -1,6 +1,4 @@
-import neuralnets
-import layers
-import nnutils
+from neuralnets import neuralnets, layers, nnutils
 
 # Fully connected network learning the mnist database
 print("Test: a fully connected network on the mnist database.")

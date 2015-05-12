@@ -31,17 +31,27 @@ class Layer(object):
 
 
 class ConvLayer(Layer):
-	# TODO: Implement the ConvLayer
+	""" A convolutional layer. """
 
-	def __init__(self):
+	def __init__(self, input_shape,
+			n_filters,
+			field=3,
+			zero_pad=1,
+			stride=1):
+		""" input_shape is expected to be (N, X, X, C) """
+		# TODO: some asserts to make sure consistent hyperparameters are given
+		super(ConvLayer, self).__init__(input_shape)
+		self.input_channels = input_shape[3] if len(input_shape) > 3 else 1
 		# Hyperparameters
-		self.n_filters = None
-		self.field = None
-		self.zero_pad = None
-		self.stride = None
-		 # Parameters = None
-		self.weights = None
-		self.biases = None
+		self.n_filters = n_filters
+		self.field = field
+		self.zero_pad = zero_pad
+		self.stride = stride
+		 # Parameters
+		self.weights = np.random.randn(n_filters, field, field, self.input_channels)
+		for i in xrange(n_filters):
+			self.weights[i] *= np.sqrt(2.0 / np.sum(self.weights[i].shape))
+		self.output_shape = (input_shape[0], input_shape[1], input_shape[2], n_filters)
 
 	def _forward(self, inputs, keepacts=False):
 		pass
@@ -108,6 +118,7 @@ class BiasLayer(Layer):
 class FCLayer(Layer):
 
 	def __init__(self, input_shape, n_neurons):
+		""" input_shape is expected to be (N, X) """
 		super(FCLayer, self).__init__(input_shape)
 		n_input = np.prod(input_shape)
 		self.weights = np.random.randn(n_input, n_neurons)

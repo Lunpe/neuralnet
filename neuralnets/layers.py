@@ -54,13 +54,53 @@ class ConvLayer(Layer):
 		self.output_shape = (input_shape[0], input_shape[1], input_shape[2], n_filters)
 
 	def _forward(self, inputs, keepacts=False):
-		pass
+		# Hopefully taking advantage of numpy's arrays mult. optimizations
+		outputs = []
+		w_map = self._weight2row(self.weights)
+		for x in inputs:
+			x_mat = self._im2col(inp)
+			outputs.append(self._col2im(np.dot(w_mat, x_mat)))
+		return outputs
 
 	def _backward(self, gradient, keepgrad=True):
 		pass
 
 	def update_parameters(self):
 		pass
+
+	def _im2col(self, x):
+		""" From input_shape (X, X, C) to matrix (F*F*C, _)> """
+		height_col = self.field * self.field * self.input_channels
+		width_col = x.shape[0] + 2 * self.zero_pad - self.field
+		width_col = width_col / self.stride + 1
+		n_acts = width_col # The number of activations per line/column of x
+		width_col *= width_col
+		col = np.zeros((height_col, width_col))
+		for ic in xrange(height_col):
+			for jc in xrange(width_col):
+				for c in xrange(self.input_channels):
+					i = self.stride * (jc / n_acts) + ic % self.field
+					j = (jc % self.field) * self.stride + ic / self.field
+					i -= self.zero_pad
+					j -= self.zero_pad
+					if i < 0 or j < 0 or i >= x.shape[0] or j >= x.shape[1]:
+						continue
+					else:
+						col[c*self.field*self.field + ic][jc] = x[i][j]
+		return col
+
+	def _col2out(self, col):
+		""" From (K, _) to (X, X, K) """
+		out = np.zeros((self.input_shape[1], self.input_shape[2], self.n_filters))
+		for i in xrange(self.input_shape[1]):
+			for j in xrange(self.input_shape[1]):
+				for k in xrange(self.n_filters):
+					out[i][j][k] = col[k][i*self.input_shape[1] + j]
+		return out
+
+	def _weight2row(self):
+		pass
+
 
 
 class PoolLayer(Layer):

@@ -2,10 +2,13 @@ import layers
 import numpy as np
 import itertools as it
 
+# TODO: Build an automated cross-validation tool for fine-tuning
+
 class NeuralNetwork(object):
 	""" Abstract class of a neural network.
 		To use a neuralnet one must create a child class (of NeuralNetwork
-		or one of its subclasses) that instantiates its own layers. """
+		or one of its subclasses) that instantiates its own layers
+		and, if wanted, learning methods. """
 
 	def __init__(self, input_shape, n_epochs, batch_size, learn_rate, regu_strength):
 		self.input_shape = input_shape
@@ -31,6 +34,8 @@ class NeuralNetwork(object):
 
 	def train(self, x, y):
 		""" May be reimplemented in a child class. """
+		# TODO: Use momentum update for the parameters as default ?
+		# (actually: having a default model for parameter updates)
 		for epoch in xrange(self.n_epochs):
 			print('epoch ' + str(epoch + 1) + ' / ' + str(self.n_epochs))
 			for i_batch in xrange(0, len(x), self.batch_size):

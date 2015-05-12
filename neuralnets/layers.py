@@ -1,7 +1,12 @@
 import numpy as np
 
+# TODO: Add PoolLayer
+# TODO: Add DropoutLayer
+# TODO: Add a more activation functions
+
 class Layer(object):
 	""" Abstract class of a layer. """
+	# TODO: Add a gradient checking method
 
 	def __init__(self, input_shape):
 		self.input_shape = input_shape
@@ -32,6 +37,8 @@ class Layer(object):
 
 class ConvLayer(Layer):
 	""" A convolutional layer. """
+	# TODO: use a third party library (theano ?) to compute the convolution
+	# while I'm implementing mine ?
 
 	def __init__(self, input_shape,
 			n_filters,
@@ -60,22 +67,6 @@ class ConvLayer(Layer):
 		pass
 
 	def update_parameters(self):
-		pass
-
-
-class PoolLayer(Layer):
-	# TODO: Implement the PoolLayer
-
-	def __init__(self):
-		pass
-
-	def _forward(self, inputs, keepacts=False):
-		pass
-
-	def _backward(self, gradient, keepgrad=True):
-		pass
-
-	def update_parameters():
 		pass
 
 
@@ -126,7 +117,7 @@ class FCLayer(Layer):
 		self.output_shape = (n_neurons,)
 
 	def _forward(self, inputs, keepacts=False):
-		self.inputs = inputs
+		self.inputs = inputs # FIXME: This shouldn't be there as such
 		acts = np.dot(inputs, self.weights)
 		if keepacts:
 			self.acts = acts

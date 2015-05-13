@@ -16,13 +16,11 @@ from neuralnets import neuralnet, layers
 net = neuralnets.NeuralNetwork(tr_d[0].shape)
 net.add_layer(layers.ConvLayer, n_filters=32)
 net.add_layer(layers.BiasLayer)
-net.add_layer(layers.ReLuLayer)
-net.add_layer(layers.ConvLayer, n_filters=16)
-net.add_layer(layers.BiasLayer)
+# ...
 net.add_layer(layers.ReLuLayer)
 net.add_layer(layers.FCLayer, n_neurons=10)
 
 net.train(images, labels, n_epochs=5, momentum=0.8)
 answer = net.predict(image_whatisit)
 ```
-But as a user, you'd better go for something else like [caffe](https://github.com/BVLC/caffe).
+But as a user, you'd better go for something else, like [caffe](https://github.com/BVLC/caffe).

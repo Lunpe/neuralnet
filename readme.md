@@ -11,7 +11,7 @@ It uses momentum coupled with softmax to train.
 
 Using it is easy:
 ```python
-from neuralnets import neuralnet, layers
+from neuralnets import neuralnets, layers
 
 net = neuralnets.NeuralNetwork(image.shape)
 net.add_layer(layers.ConvLayer, n_filters=32)

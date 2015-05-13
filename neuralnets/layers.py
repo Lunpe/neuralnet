@@ -14,6 +14,7 @@ class Layer(object):
 		self.input_shape = input_shape
 		self.output_shape = input_shape # Most layers don't change the shape
 		self.acts = None
+		self.velocity = None # Must be set in subclass for params update
 
 	def forward(self, inputs, keepacts=False):
 		""" Forwards the activations through this layer.
@@ -45,7 +46,7 @@ class Layer(object):
 				"backprop not possible")
 		return self._backward(gradient)
 
-	def update_parameters(self, learn_rate, regu_strength):
+	def update_parameters(self, learn_rate, momentum):
 		""" To be implemented in child class (if needed). """
 		pass
 
@@ -73,7 +74,6 @@ class ConvLayer(Layer):
 		input_shape is expected to be (num_data, num_chan, x_rez, y_rez).
 		"""
 		super(ConvLayer, self).__init__(input_shape)
-		self.d_weights = None
 		# Hyperparameters
 		self.n_filters = n_filters
 		self.field = field
@@ -82,6 +82,8 @@ class ConvLayer(Layer):
 				field, field)
 		for i in xrange(n_filters):
 			self.weights[i] *= np.sqrt(2.0 / np.sum(self.weights[i].shape))
+		self.d_weights = None
+		self.velocity = np.zeros(self.weights.shape)
 		self.output_shape = (1, self.n_filters,\
 				input_shape[2], input_shape[3])
 
@@ -115,9 +117,9 @@ class ConvLayer(Layer):
 							self.weights[k][c], 'same')
 		return grad
 
-	def update_parameters(self, learn_rate, regu_strength):
-		self.weights *= (1 - regu_strength)
-		self.weights -= self.d_weights * learn_rate / len(self.d_weights)
+	def update_parameters(self, learn_rate, momentum):
+		self.velocity = momentum * self.velocity - self.d_weights * learn_rate
+		self.weights += self.velocity
 
 
 class ReLuLayer(Layer):
@@ -138,6 +140,7 @@ class BiasLayer(Layer):
 		super(BiasLayer, self).__init__(input_shape)
 		self.biases = np.zeros(input_shape[1:])
 		self.d_biases = None
+		self.velocity = np.zeros(input_shape[1:])
 
 	def _forward(self, inputs, keepacts=False):
 		acts = inputs + self.biases
@@ -147,8 +150,10 @@ class BiasLayer(Layer):
 		self.d_biases = gradient
 		return gradient
 
-	def update_parameters(self, learn_rate, regu_strength):
-		self.biases -= learn_rate * np.mean(self.d_biases, axis=0)
+	def update_parameters(self, learn_rate, momentum):
+		self.velocity = momentum * self.velocity
+		self.velocity -= learn_rate * np.mean(self.d_biases, axis=0)
+		self.biases -= self.velocity
 
 
 class FCLayer(Layer):
@@ -168,6 +173,7 @@ class FCLayer(Layer):
 		self.weights *= np.sqrt(2.0 / n_input)
 		self.output_shape = (input_shape, n_neurons)
 		self.d_weights = None
+		self.velocity = np.zeros(self.weights.shape)
 
 	def _forward(self, inputs, keepacts=False):
 		inputs = inputs.reshape(inputs.shape[0], np.prod(self.input_shape[1:]))
@@ -180,7 +186,7 @@ class FCLayer(Layer):
 		grad = np.dot(gradient, self.weights.T)
 		return grad.reshape((gradient.shape[0],) + self.input_shape[1:])
 
-	def update_parameters(self, learn_rate, regu_strength):
-		self.weights *= (1 - regu_strength)
-		self.weights -= self.d_weights * learn_rate / len(self.d_weights)
+	def update_parameters(self, learn_rate, momentum):
+		self.velocity = momentum * self.velocity - self.d_weights * learn_rate
+		self.weights += self.velocity
 

@@ -13,26 +13,13 @@ class NeuralNetwork(object):
 
 	"""
 
-	def __init__(self,
-			input_shape,
-			n_epochs,
-			batch_size,
-			learn_rate,
-			regu_strength):
+	def __init__(self, input_shape):
 		""" Creates a neural network.
 
 		input_shape: the shape of the input (num x channels x dim x dim)
-		n_epochs: the number of epochs used for training
-		batch_size: the size of a mini batch used for training
-		learn_rate: well, the learning rate
 		"""
-
 		self.input_shape = input_shape
 		self.layers = []
-		self.n_epochs = n_epochs
-		self.batch_size = batch_size
-		self.learn_rate = learn_rate
-		self.regu_strength = regu_strength
 
 	def forward(self, x, keepacts=False):
 		""" Predicts the class of x through the net., returns the predictions.
@@ -63,25 +50,35 @@ class NeuralNetwork(object):
 		maxs = np.argmax(self.forward(x), axis=1)
 		return sum((o == y) for (o, y) in it.izip(maxs, y))
 
-	def train(self, x, y):
+	def train(self, x,
+			y,
+			n_epochs=10,
+			batch_size=50,
+			learn_rate=0.01,
+			momentum=0.5):
 		""" Trains the network with given input and labels.
 
 		x: the inputs in a numpy array (number x channels x width x height)
 		y: the correponding labels
+		n_epochs: the number of epochs used for training
+		batch_size: the size of a mini batch used for training
+		learn_rate: well, the learning rate
+		momentum: momentum used for parameter updates
+
 		May be reimplemented in a child class
 		"""
 		# TODO: Use momentum update for the parameters as default ?
 		# (actually: having a default model for parameter updates)
-		for epoch in xrange(self.n_epochs):
-			print('epoch ' + str(epoch + 1) + ' / ' + str(self.n_epochs))
-			for i_batch in xrange(0, len(x), self.batch_size):
-				xb = x[i_batch:i_batch+self.batch_size]
-				yb = y[i_batch:i_batch+self.batch_size]
+		for epoch in xrange(n_epochs):
+			print('epoch ' + str(epoch + 1) + ' / ' + str(n_epochs))
+			for i_batch in xrange(0, len(x), batch_size):
+				xb = x[i_batch:i_batch+batch_size]
+				yb = y[i_batch:i_batch+batch_size]
 
 				outputs = self.forward(xb, keepacts=True)
 				grad = self.loss(outputs, yb)
 				self.backward(grad)
-				self.update_parameters()
+				self.update_parameters(learn_rate, momentum)
 
 	def add_layer(self, layer_class, **kwargs):
 		""" Adds a layer of the given class at the end of the net.
@@ -95,7 +92,7 @@ class NeuralNetwork(object):
 					**kwargs))
 		return self
 
-	def update_parameters(self):
+	def update_parameters(self, learn_rate, momentum):
 		""" Makes the layers update their parameters.
 
 		Must be implemented in a child class.
@@ -115,14 +112,8 @@ class NeuralNetwork(object):
 class ConvNet(NeuralNetwork):
 	""" A (very) simple convolutional network. """
 
-	def __init__(self, input_shape,
-			n_epochs,
-			batch_size,
-			learn_rate,
-			regu_strength):
-
-		super(ConvNet, self).__init__(input_shape, n_epochs,\
-				batch_size, learn_rate, regu_strength)
+	def __init__(self, input_shape):
+		super(ConvNet, self).__init__(input_shape)
 		self.layers = []
 		self.add_layer(layers.ConvLayer, n_filters=32)
 		self.add_layer(layers.ReLuLayer)
@@ -130,9 +121,9 @@ class ConvNet(NeuralNetwork):
 		self.add_layer(layers.ReLuLayer)
 		self.add_layer(layers.FCLayer, n_neurons=10)
 
-	def update_parameters(self):
+	def update_parameters(self, learn_rate, momentum):
 		for layer in self.layers:
-			layer.update_parameters(self.learn_rate, self.regu_strength)
+			layer.update_parameters(learn_rate, momentum)
 
 	def loss(self, outputs, ys):
 		# Softmax function
@@ -145,15 +136,8 @@ class ConvNet(NeuralNetwork):
 class SoftmaxFCNetwork(NeuralNetwork):
 	""" A simple fully connected that uses softmax as loss function. """
 
-	def __init__(self, input_shape,
-			layout,
-			n_epochs,
-			batch_size,
-			learn_rate,
-			regu_strength):
-		super(SoftmaxFCNetwork, self).__init__(input_shape, n_epochs,
-				batch_size, learn_rate, regu_strength)
-
+	def __init__(self, input_shape, layout):
+		super(SoftmaxFCNetwork, self).__init__(input_shape)
 		for n_neurons in layout[:-1]:
 			self.add_layer(layers.FCLayer, n_neurons=n_neurons)
 			self.add_layer(layers.BiasLayer)
@@ -162,9 +146,9 @@ class SoftmaxFCNetwork(NeuralNetwork):
 		self.add_layer(layers.FCLayer, n_neurons=layout[-1])
 		self.add_layer(layers.BiasLayer)
 
-	def update_parameters(self):
+	def update_parameters(self, learn_rate, momentum):
 		for layer in self.layers:
-			layer.update_parameters(self.learn_rate, self.regu_strength)
+			layer.update_parameters(learn_rate, momentum)
 
 	def loss(self, outputs, ys):
 		# Softmax function

@@ -1,12 +1,13 @@
 import os
 import struct
+import cPickle
 import numpy as np
 
 from array import array as pyarray
 
-
-def sigmoid(x):
-	return 1 / (1 + np.exp(-x))
+# ----------------------------------------------------------------------------
+# MNIST methods
+# ----------------------------------------------------------------------------
 
 def load_mnist(dataset="training", digits=np.arange(10), path="./data"):
     """
@@ -46,15 +47,15 @@ def load_mnist(dataset="training", digits=np.arange(10), path="./data"):
 
     return images, labels
 
-def preprocess(data):
+def preprocess_mnist(data):
 	""" Scales the images pixels between 0 and 1."""
 	return (data[0] / 255.0, data[1])
 
-def load_cross_validation_data(n_validation=10000):
+def load_cross_validation_data_mnist(n_validation=10000):
 	""" Assuming we're using the mnist databse.
 	n_validation is the number of validation data wanted from the 60000
 	total training data."""
-	d = preprocess(load_mnist('training'))
+	d = preprocess_mnist(load_mnist('training'))
 	i = np.random.random_integers(0, len(d[0]) - n_validation)
 
 	# Not truly random but whatever
@@ -63,11 +64,49 @@ def load_cross_validation_data(n_validation=10000):
 	validation = (d[0][i:i+n_validation], d[1][i:i+n_validation])
 	return training, validation
 
-def load_final_data():
-	tr = preprocess(load_mnist('training'))
-	te = preprocess(load_mnist('testing'))
+def load_final_data_mnist():
+	tr = preprocess_mnist(load_mnist('training'))
+	te = preprocess_mnist(load_mnist('testing'))
 	return tr, te
 
+# ----------------------------------------------------------------------------
+# CIFAR 10 methods
+# ----------------------------------------------------------------------------
 
+def preprocess_cifar(images):
+	""" Centers the data to have a mean of zero and scales it to [-1, 1] """
+	processed = images.astype(np.float32)
+	for i in xrange(len(processed)):
+		for c in xrange(len(processed[0])):
+			processed[i][c] = processed[i][c] - np.mean(processed[i][c])
+			vmin = np.abs(np.min(processed[i][c]))
+			vmax = np.abs(np.max(processed[i][c]))
+			processed[i][c] = processed[i][c] / float(np.max([vmin, vmax]))
+	return processed
 
+def load_cross_validation_data_cifar():
+	tr_images = np.empty((50000, 3, 32, 32))
+	tr_labels = np.empty((50000))
+	te_images = te_labels = []
 
+	i_train = 0
+	i_test = np.random.choice(6) + 1 # Choosing a random batch for cross valid.
+	for i in xrange(1, 6):
+		fname = "data/cifar-10-batches-py/data_batch_" + str(i)
+		fo = open(fname, 'rb')
+		raw = cPickle.load(fo)
+		fo.close()
+		data_3D = preprocess_cifar(raw['data'].reshape((10000, 3, 32, 32)))
+		labels = np.array([np.argmax(l) for l in raw['labels']])
+
+		if i == i_test:
+			te_images = data_3D
+			te_labels = raw['labels']
+		else:
+			tr_images[i_train:i_train+10000] = data_3D
+			tr_labels[i_train:i_train+10000] = raw['labels']
+			i_train += 10000
+
+	return (tr_images, tr_labels), (te_images, te_labels)
+
+#EOF

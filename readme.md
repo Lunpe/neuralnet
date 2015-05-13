@@ -13,7 +13,7 @@ Using it is easy:
 ```python
 from neuralnets import neuralnet, layers
 
-net = neuralnets.NeuralNetwork(tr_d[0].shape)
+net = neuralnets.NeuralNetwork(image.shape)
 net.add_layer(layers.ConvLayer, n_filters=32)
 net.add_layer(layers.BiasLayer)
 # ...

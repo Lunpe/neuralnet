@@ -7,48 +7,78 @@ import scipy.signal
 
 class Layer(object):
 	""" Abstract class of a layer. """
+
 	# TODO: Add a gradient checking method
 
 	def __init__(self, input_shape):
 		self.input_shape = input_shape
 		self.output_shape = input_shape # Most layers don't change the shape
 		self.acts = None
-		self.gradient = None
 
 	def forward(self, inputs, keepacts=False):
-		assert inputs.shape[1:] == self.input_shape[1:], 'Wrong input shape'
-		return self._forward(inputs, keepacts)
+		""" Forwards the activations through this layer.
 
-	def backward(self, gradient, keepgrad=True):
-		assert self.acts != [], "No activation values stored, backprop not possible"
-		return self._backward(gradient, keepgrad)
+		inputs: the inputs of the layer. Must be of the same shape as given
+		at intialization.
+		keepacts: True if backpropagation is planned (for training)
+
+		This method is a wrapper around _forward() that must be implemented
+		in the subclasses.
+		"""
+		assert inputs.shape[1:] == self.input_shape[1:], 'Wrong input shape'
+		acts = self._forward(inputs, keepacts)
+		if keepacts:
+			self.acts = acts
+		else:
+			self.acts = None # Freeing memory, the activations can be heavy
+		return acts
+
+	def backward(self, gradient):
+		""" Propagates the given output gradient through the layer.
+
+		gradient: the error gradient on the output of the layer.
+
+		This method is a wrapper around _backward() that must be implemented
+		in the subclasses.
+		"""
+		assert self.acts is not None, ("No activation values stored, "
+				"backprop not possible")
+		return self._backward(gradient)
 
 	def update_parameters(self, learn_rate, regu_strength):
 		""" To be implemented in child class (if needed). """
 		pass
 
 	def _forward(self, inputs, keepacts):
-		""" To be implemented in child class. """
+		""" Must implemented in child class. """
 		raise NotImplementedError
 
-	def _backward(self, gradient, keepgrad):
-		""" To be implemented in child class. """
+	def _backward(self, gradient):
+		""" Must implemented in child class. """
 		raise NotImplementedError
 
 
 class ConvLayer(Layer):
-	""" A convolutional layer. """
+	""" A convolutional layer.
+
+	Note that it doesn't apply a bias nor an activation function.
+	"""
 
 	def __init__(self, input_shape,	n_filters, field=3):
-		""" input_shape is expected to be (num_data, num_chan, x_rez, y_rez).
+		""" Creates a convolution layer with n filters.
+
+		n_filters: the number of filters (kernels) contained in this layer
+		field: the length of the side of a (square) filter
+
+		input_shape is expected to be (num_data, num_chan, x_rez, y_rez).
 		"""
 		super(ConvLayer, self).__init__(input_shape)
-		self.input_channels = input_shape[1]
+		self.d_weights = None
 		# Hyperparameters
 		self.n_filters = n_filters
 		self.field = field
 		 # Parameters
-		self.weights = np.random.randn(n_filters, self.input_channels,\
+		self.weights = np.random.randn(n_filters, input_shape[1],\
 				field, field)
 		for i in xrange(n_filters):
 			self.weights[i] *= np.sqrt(2.0 / np.sum(self.weights[i].shape))
@@ -63,44 +93,42 @@ class ConvLayer(Layer):
 		for n in xrange(inputs.shape[0]): # for each image
 			for k in xrange(self.n_filters): # for each kernel
 				for c in xrange(inputs.shape[1]): # for each channel
+
 					outputs[n][k] += scipy.signal.convolve2d(inputs[n][c],\
 							self.weights[k][c], mode='same')
-		if keepacts:
-			self.acts = outputs
 		return outputs
 
 
-	def _backward(self, gradient, keepgrad=True):
+	def _backward(self, gradient):
 		""" The slowest backprop you will ever see for a convolutional
 			layer. """
-		self.gradient = np.zeros(self.weights.shape)
+		self.d_weights = np.zeros(self.weights.shape)
 		grad = np.zeros(self.inputs.shape)
 		for k in xrange(self.n_filters): # for each kernel
 			for c in xrange(self.inputs.shape[1]): # for each channel
 				for n in xrange(self.inputs.shape[0]): # for each image
-					self.gradient[k][c] += scipy.signal.convolve2d(\
+
+					self.d_weights[k][c] += scipy.signal.convolve2d(\
 							self.inputs[n][c], gradient[n][k], 'valid')
+
 					grad[n][c] += scipy.signal.correlate2d(gradient[n][k],\
 							self.weights[k][c], 'same')
 		return grad
 
 	def update_parameters(self, learn_rate, regu_strength):
 		self.weights *= (1 - regu_strength)
-		self.weights -= self.gradient * learn_rate / len(self.gradient)
+		self.weights -= self.d_weights * learn_rate / len(self.d_weights)
 
 
 class ReLuLayer(Layer):
+	""" An activation layer that uses the ReLu function. (max(0, input)) """
 
 	def _forward(self, inputs, keepacts=False):
 		acts = np.maximum(0, inputs)
-		if keepacts:
-			self.acts = acts
 		return acts
 
-	def _backward(self, gradient, keepgrad=True):
+	def _backward(self, gradient):
 		grad = gradient * (self.acts > 0)
-		if keepgrad:
-			self.gradient = grad
 		return grad
 
 
@@ -109,48 +137,50 @@ class BiasLayer(Layer):
 	def __init__(self, input_shape):
 		super(BiasLayer, self).__init__(input_shape)
 		self.biases = np.zeros(input_shape[1:])
+		self.d_biases = None
 
 	def _forward(self, inputs, keepacts=False):
 		acts = inputs + self.biases
-		if keepacts:
-			self.acts = acts
 		return acts
 
-	def _backward(self, gradient, keepgrad=True):
-		if keepgrad:
-			self.gradient = gradient
+	def _backward(self, gradient):
+		self.d_biases = gradient
 		return gradient
 
 	def update_parameters(self, learn_rate, regu_strength):
-		self.biases -= learn_rate * np.mean(self.gradient, axis=0)
+		self.biases -= learn_rate * np.mean(self.d_biases, axis=0)
 
 
 class FCLayer(Layer):
+	""" Fully Connected Layer.
+
+	All the neurons are connected to every neuron in the previous layer.
+	"""
 
 	def __init__(self, input_shape, n_neurons):
-		""" input_shape is expected to be (N, C, X, X) """
+		"""
+		input_shape: a tuple expected to be (N, C, X, X)
+		n_neurons: the number of neurons in this layer.
+		"""
 		super(FCLayer, self).__init__(input_shape)
 		n_input = np.prod(input_shape[1:])
 		self.weights = np.random.randn(n_input, n_neurons)
 		self.weights *= np.sqrt(2.0 / n_input)
 		self.output_shape = (input_shape, n_neurons)
+		self.d_weights = None
 
 	def _forward(self, inputs, keepacts=False):
 		inputs = inputs.reshape(inputs.shape[0], np.prod(self.input_shape[1:]))
 		self.inputs = inputs # FIXME: This shouldn't be there as such
 		acts = np.dot(inputs, self.weights)
-		if keepacts:
-			self.acts = acts
 		return acts
 
-	def _backward(self, gradient, keepgrad=True):
-		grad = np.dot(self.inputs.T, gradient)
-		if keepgrad:
-			self.gradient = grad
-		return np.dot(gradient, self.weights.T).reshape((gradient.shape[0],)\
-				+ self.input_shape[1:])
+	def _backward(self, gradient):
+		self.d_weights = np.dot(self.inputs.T, gradient)
+		grad = np.dot(gradient, self.weights.T)
+		return grad.reshape((gradient.shape[0],) + self.input_shape[1:])
 
 	def update_parameters(self, learn_rate, regu_strength):
 		self.weights *= (1 - regu_strength)
-		self.weights -= self.gradient * learn_rate / len(self.gradient)
+		self.weights -= self.d_weights * learn_rate / len(self.d_weights)
 

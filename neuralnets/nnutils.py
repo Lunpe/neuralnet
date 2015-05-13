@@ -9,9 +9,9 @@ from array import array as pyarray
 # MNIST methods
 # ----------------------------------------------------------------------------
 
+
 def load_mnist(dataset="training", digits=np.arange(10), path="./data"):
-    """
-    Loads MNIST files into 2D numpy arrays
+    """ Loads MNIST files into 2D numpy arrays
 
     Adapted from: http://abel.ee.ucla.edu/cvxopt/_downloads/mnist.py
 	SEE: http://g.sweyla.com/blog/2012/mnist-numpy/
@@ -47,14 +47,18 @@ def load_mnist(dataset="training", digits=np.arange(10), path="./data"):
 
     return images, labels
 
+
 def preprocess_mnist(data):
 	""" Scales the images pixels between 0 and 1."""
 	return (data[0] / 255.0, data[1])
 
+
 def load_cross_validation_data_mnist(n_validation=10000):
-	""" Assuming we're using the mnist databse.
+	""" Loads the mnist data for cross validation.
+
 	n_validation is the number of validation data wanted from the 60000
-	total training data."""
+	total training data.
+	"""
 	d = preprocess_mnist(load_mnist('training'))
 	i = np.random.random_integers(0, len(d[0]) - n_validation)
 
@@ -64,14 +68,21 @@ def load_cross_validation_data_mnist(n_validation=10000):
 	validation = (d[0][i:i+n_validation], d[1][i:i+n_validation])
 	return training, validation
 
-def load_final_data_mnist():
+
+def load_data_mnist():
+	""" Loads the images and labels from the mnist database.
+
+	Returns ((training_ims, training_labels), (testing_ims, testing_labels))
+	"""
 	tr = preprocess_mnist(load_mnist('training'))
 	te = preprocess_mnist(load_mnist('testing'))
 	return tr, te
 
+
 # ----------------------------------------------------------------------------
 # CIFAR 10 methods
 # ----------------------------------------------------------------------------
+
 
 def preprocess_cifar(images):
 	""" Centers the data to have a mean of zero and scales it to [-1, 1] """
@@ -84,7 +95,9 @@ def preprocess_cifar(images):
 			processed[i][c] = processed[i][c] / float(np.max([vmin, vmax]))
 	return processed
 
+
 def load_cross_validation_data_cifar():
+	""" Loads the cifar-10 data for cross validation."""
 	tr_images = np.empty((50000, 3, 32, 32))
 	tr_labels = np.empty((50000))
 	te_images = te_labels = []
@@ -109,4 +122,3 @@ def load_cross_validation_data_cifar():
 
 	return (tr_images, tr_labels), (te_images, te_labels)
 
-#EOF

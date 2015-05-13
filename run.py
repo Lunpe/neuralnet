@@ -6,10 +6,15 @@ def fully_connected():
 	# Fully connected network learning the mnist database
 	print("Test: a fully connected network on the mnist database.")
 	print("Loading the mnist database...")
-	tr_d, te_d = nnutils.load_final_data_mnist()
-	net = neuralnets.SoftmaxFCNetwork(tr_d[0].shape, [100, 10], 10,\
-			50, 0.01, 0)
+	tr_d, te_d = nnutils.load_data_mnist()
+	net = neuralnets.SoftmaxFCNetwork(input_shape=tr_d[0].shape,
+			layout=[100, 10],
+			n_epochs=5,
+			batch_size=50,
+			learn_rate=0.01,
+			regu_strength=0)
 	net.train(tr_d[0], tr_d[1])
+	print("Testing...")
 	res = net.test(te_d[0], te_d[1])
 	print('We got ' + str(res) + '/' + str(len(te_d[0]))  + ' good answers !')
 
@@ -18,8 +23,13 @@ def convolutional():
 	print("Test: a convolutional network on the cifar-10 database.")
 	print("Loading the cifar-10 database...")
 	tr_d, te_d = nnutils.load_cross_validation_data_cifar()
-	net = neuralnets.ConvNet(tr_d[0].shape, 1, 20, 0.01, 0.001)
+	net = neuralnets.ConvNet(input_shape=tr_d[0].shape,
+			n_epochs=1,
+			batch_size=20,
+			learn_rate=0.01,
+			regu_strength=0.001)
 	net.train(tr_d[0], tr_d[1])
+	print("Testing...")
 	res = net.test(te_d[0], te_d[1])
 	print('We got ' + str(res) + '/' + str(len(te_d[0]))  + ' good answers !')
 
@@ -37,3 +47,4 @@ if __name__ == "__main__":
 			fully_connected()
 	else:
 		fully_connected()
+

@@ -27,7 +27,7 @@ class Layer(object):
 		in the subclasses.
 		"""
 		assert inputs.shape[1:] == self.input_shape[1:], 'Wrong input shape'
-		acts = self._forward(inputs, keepacts)
+		acts = self._forward(inputs)
 		if keepacts:
 			self.acts = acts
 		else:
@@ -50,7 +50,7 @@ class Layer(object):
 		""" To be implemented in child class (if needed). """
 		pass
 
-	def _forward(self, inputs, keepacts):
+	def _forward(self, inputs):
 		""" Must implemented in child class. """
 		raise NotImplementedError
 
@@ -87,7 +87,7 @@ class ConvLayer(Layer):
 		self.output_shape = (1, self.n_filters,\
 				input_shape[2], input_shape[3])
 
-	def _forward(self, inputs, keepacts=False):
+	def _forward(self, inputs):
 		""" Uses scipy to convolve each channel of each image separately
 			which is painfully slow. """
 		self.inputs =  inputs
@@ -125,7 +125,7 @@ class ConvLayer(Layer):
 class ReLuLayer(Layer):
 	""" An activation layer that uses the ReLu function. (max(0, input)) """
 
-	def _forward(self, inputs, keepacts=False):
+	def _forward(self, inputs):
 		acts = np.maximum(0, inputs)
 		return acts
 
@@ -142,7 +142,7 @@ class BiasLayer(Layer):
 		self.d_biases = None
 		self.velocity = np.zeros(input_shape[1:])
 
-	def _forward(self, inputs, keepacts=False):
+	def _forward(self, inputs):
 		acts = inputs + self.biases
 		return acts
 
@@ -175,7 +175,7 @@ class FCLayer(Layer):
 		self.d_weights = None
 		self.velocity = np.zeros(self.weights.shape)
 
-	def _forward(self, inputs, keepacts=False):
+	def _forward(self, inputs):
 		inputs = inputs.reshape(inputs.shape[0], np.prod(self.input_shape[1:]))
 		self.inputs = inputs # FIXME: This shouldn't be there as such
 		acts = np.dot(inputs, self.weights)

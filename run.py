@@ -1,12 +1,13 @@
 import sys
 
-from neuralnets import neuralnets, layers, nnutils
+import dataloader
+from neuralnets import neuralnets, layers
 
 def fully_connected():
 	# Fully connected network learning the mnist database
 	print("Test: a fully connected network on the mnist database.")
 	print("Loading the mnist database...")
-	tr_d, te_d = nnutils.load_data_mnist()
+	tr_d, te_d = dataloader.load_data_mnist()
 	net = neuralnets.SoftmaxFCNetwork(input_shape=tr_d[0].shape,
 			layout=[100, 10])
 	net.train(tr_d[0], tr_d[1])
@@ -17,7 +18,7 @@ def fully_connected():
 def fully_connected():
 	print("Test: a fully connected network on the mnist database.")
 	print("Loading the mnist database...")
-	tr_d, te_d = nnutils.load_data_mnist()
+	tr_d, te_d = dataloader.load_data_mnist()
 
 	# Creating the neural network
 	net = neuralnets.NeuralNetwork(tr_d[0].shape)
@@ -36,7 +37,7 @@ def convolutional():
 	# Convolutional network learning the cifar10 database
 	print("Test: a convolutional network on the cifar-10 database.")
 	print("Loading the cifar-10 database...")
-	tr_d, te_d = nnutils.load_cross_validation_data_cifar()
+	tr_d, te_d = dataloader.load_cross_validation_data_cifar()
 
 	# Creating the neural network
 	net = neuralnets.NeuralNetwork(tr_d[0].shape)

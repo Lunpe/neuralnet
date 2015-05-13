@@ -36,7 +36,7 @@ def load_mnist(dataset="training", digits=np.arange(10), path="./data"):
     img = pyarray("B", fimg.read())
     fimg.close()
 
-    ind = [ k for k in range(size) if lbl[k] in digits ]
+    ind = [k for k in range(size) if lbl[k] in digits]
     N = len(ind)
 
     images = np.zeros((N, rows * cols), dtype=np.uint8)

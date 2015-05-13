@@ -10,7 +10,12 @@ class NeuralNetwork(object):
 		or one of its subclasses) that instantiates its own layers
 		and, if wanted, learning methods. """
 
-	def __init__(self, input_shape, n_epochs, batch_size, learn_rate, regu_strength):
+	def __init__(self,
+			input_shape,
+			n_epochs,
+			batch_size,
+			learn_rate,
+			regu_strength):
 		self.input_shape = input_shape
 		self.layers = []
 		self.n_epochs = n_epochs
@@ -65,19 +70,28 @@ class NeuralNetwork(object):
 
 class ConvNet(NeuralNetwork):
 
-	def __init__(self, n_epochs, batch_size, learn_rate):
-		super(ConvNet, self).__init__(n_epochs, batch_size, learn_rate)
+	def __init__(self, input_shape,
+			n_epochs,
+			batch_size,
+			learn_rate,
+			regu_strength):
+		super(ConvNet, self).__init__(input_shape, n_epochs,\
+				batch_size, learn_rate, regu_strength)
 		self.layers = []
-		self._add_layer(layers.ConvLayer)
-		self._add_layer(layers.ReluLayer)
-		self._add_layer(layers.ConvLayer)
-		self._add_layer(layers.ReluLayer)
-		self._add_layer(layers.PoolLayer)
-		self._add_layer(layers.FCLayer)
+		self._add_layer(layers.ConvLayer, n_filters=16)
+		self._add_layer(layers.ReLuLayer)
+		self._add_layer(layers.FCLayer, n_neurons=10)
 
-	def update_parameters():
-		pass
+	def update_parameters(self):
+		for layer in self.layers:
+			layer.update_parameters(self.learn_rate, self.regu_strength)
 
+	def loss(self, outputs, ys):
+		# Softmax function
+		grad = np.array([np.exp(o)/np.sum(np.exp(o)) for o in outputs])
+		for i, c in enumerate(ys):
+			grad[i][c] -= 1
+		return grad
 
 class SoftmaxFCNetwork(NeuralNetwork):
 

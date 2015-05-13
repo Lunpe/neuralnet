@@ -102,8 +102,8 @@ class ConvLayer(Layer):
 
 
 	def _backward(self, gradient):
-		""" The slowest backprop you will ever see for a convolutional
-			layer. """
+		""" The slowest backprop you will ever see for a convolutional layer.
+		"""
 		self.d_weights = np.zeros(self.weights.shape)
 		grad = np.zeros(self.inputs.shape)
 		for k in xrange(self.n_filters): # for each kernel

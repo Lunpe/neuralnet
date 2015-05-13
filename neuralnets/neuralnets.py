@@ -5,12 +5,9 @@ import itertools as it
 # TODO: Build an automated cross-validation tool for fine-tuning
 
 class NeuralNetwork(object):
-	""" Abstract class of a neural network.
+	""" Base class of a neural network.
 
-		To use a one must create a child class (of NeuralNetwork
-		or one of its subclasses) that instantiates its own layers
-		and, if wanted, learning methods.
-
+	Uses momentum and softmax as default.
 	"""
 
 	def __init__(self, input_shape):
@@ -40,6 +37,11 @@ class NeuralNetwork(object):
 		for layer in reversed(self.layers):
 			gradient = layer.backward(gradient)
 		return gradient
+
+	def predict(self, x):
+		""" Predicts the class of a single datum. """
+		output = self.forward([x])
+		return np.argmax(output)
 
 	def test(self, x, y):
 		""" Returns the number of good predictions by the network on x and y.
@@ -93,11 +95,9 @@ class NeuralNetwork(object):
 		return self
 
 	def update_parameters(self, learn_rate, momentum):
-		""" Makes the layers update their parameters.
-
-		Must be implemented in a child class.
-		"""
-		raise NotImplementedError
+		""" Makes the layers update their parameters. """
+		for layer in self.layers:
+			layer.update_parameters(learn_rate, momentum)
 
 	def loss(self, outputs, ys):
 		""" The function used as loss function by the default training algo.
@@ -105,55 +105,16 @@ class NeuralNetwork(object):
 		outputs: the output of the network for given inputs
 		ys: the true classes for the inputs
 
-		Must implemented in child class. """
-		raise NotImplementedError
+		Default: softmax
+		"""
+		return softmax(self, outputs, ys)
 
 
-class ConvNet(NeuralNetwork):
-	""" A (very) simple convolutional network. """
-
-	def __init__(self, input_shape):
-		super(ConvNet, self).__init__(input_shape)
-		self.layers = []
-		self.add_layer(layers.ConvLayer, n_filters=32)
-		self.add_layer(layers.ReLuLayer)
-		self.add_layer(layers.ConvLayer, n_filters=16)
-		self.add_layer(layers.ReLuLayer)
-		self.add_layer(layers.FCLayer, n_neurons=10)
-
-	def update_parameters(self, learn_rate, momentum):
-		for layer in self.layers:
-			layer.update_parameters(learn_rate, momentum)
-
-	def loss(self, outputs, ys):
-		# Softmax function
-		grad = np.array([np.exp(o)/np.sum(np.exp(o)) for o in outputs])
-		for i, c in enumerate(ys):
-			grad[i][c] -= 1
-		return grad
-
-
-class SoftmaxFCNetwork(NeuralNetwork):
-	""" A simple fully connected that uses softmax as loss function. """
-
-	def __init__(self, input_shape, layout):
-		super(SoftmaxFCNetwork, self).__init__(input_shape)
-		for n_neurons in layout[:-1]:
-			self.add_layer(layers.FCLayer, n_neurons=n_neurons)
-			self.add_layer(layers.BiasLayer)
-			self.add_layer(layers.ReLuLayer)
-		# There's no activation function on the last layer
-		self.add_layer(layers.FCLayer, n_neurons=layout[-1])
-		self.add_layer(layers.BiasLayer)
-
-	def update_parameters(self, learn_rate, momentum):
-		for layer in self.layers:
-			layer.update_parameters(learn_rate, momentum)
-
-	def loss(self, outputs, ys):
-		# Softmax function
-		grad = np.array([np.exp(o) / np.sum(np.exp(o)) for o in outputs])
-		for i, c in enumerate(ys):
-			grad[i][c] -= 1
-		return grad
+# TODO: Find/create a place for this function (and other loss funcs)
+def softmax(self, outputs, ys):
+	""" A loss function. """
+	grad = np.array([np.exp(o) / np.sum(np.exp(o)) for o in outputs])
+	for i, c in enumerate(ys):
+		grad[i][c] -= 1
+	return grad
 

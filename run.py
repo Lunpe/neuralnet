@@ -3,17 +3,6 @@ import sys
 import dataloader
 from neuralnets import neuralnets, layers
 
-def fully_connected():
-	# Fully connected network learning the mnist database
-	print("Test: a fully connected network on the mnist database.")
-	print("Loading the mnist database...")
-	tr_d, te_d = dataloader.load_data_mnist()
-	net = neuralnets.SoftmaxFCNetwork(input_shape=tr_d[0].shape,
-			layout=[100, 10])
-	net.train(tr_d[0], tr_d[1])
-	print("Testing...")
-	res = net.test(te_d[0], te_d[1])
-	print('We got ' + str(res) + '/' + str(len(te_d[0]))  + ' good answers !')
 
 def fully_connected():
 	print("Test: a fully connected network on the mnist database.")
@@ -33,6 +22,7 @@ def fully_connected():
 	res = net.test(te_d[0], te_d[1])
 	print('We got ' + str(res) + '/' + str(len(te_d[0]))  + ' good answers !')
 
+
 def convolutional():
 	# Convolutional network learning the cifar10 database
 	print("Test: a convolutional network on the cifar-10 database.")
@@ -51,6 +41,7 @@ def convolutional():
 	print("Testing...")
 	res = net.test(te_d[0], te_d[1])
 	print('We got ' + str(res) + '/' + str(len(te_d[0]))  + ' good answers !')
+
 
 if __name__ == "__main__":
 	if len(sys.argv) > 1:

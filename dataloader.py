@@ -93,7 +93,7 @@ def preprocess_cifar(images):
 			vmin = np.abs(np.min(processed[i][c]))
 			vmax = np.abs(np.max(processed[i][c]))
 			processed[i][c] = processed[i][c] / float(np.max([vmin, vmax]))
-	return processed
+	return np.array(processed)
 
 
 def load_cross_validation_data_cifar():

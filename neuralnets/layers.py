@@ -26,6 +26,8 @@ class Layer(object):
 		This method is a wrapper around _forward() that must be implemented
 		in the subclasses.
 		"""
+		if type(inputs) == list:
+			print(self)
 		assert inputs.shape[1:] == self.input_shape[1:], 'Wrong input shape'
 		acts = self._forward(inputs)
 		if keepacts:
@@ -77,7 +79,7 @@ class ConvLayer(Layer):
 		# Hyperparameters
 		self.n_filters = n_filters
 		self.field = field
-		 # Parameters
+		# Parameters
 		self.weights = np.random.randn(n_filters, input_shape[1],\
 				field, field)
 		for i in xrange(n_filters):
@@ -121,6 +123,44 @@ class ConvLayer(Layer):
 		self.velocity = momentum * self.velocity - self.d_weights * learn_rate
 		self.weights += self.velocity
 
+
+class PoolingLayer(Layer):
+	""" The classic max 2x2 pool layer. """
+
+	def __init__(self, input_shape, pool_size=2):
+		super(PoolingLayer, self).__init__(input_shape)
+		self.size = pool_size
+		self.output_shape = list(input_shape[:2])
+		self.output_shape += [s/2 for s in input_shape[2:]]
+		self.output_shape = tuple(self.output_shape)
+		self.indices = None
+
+	def _forward(self, inputs):
+		acts = np.zeros((inputs.shape[0],) + self.output_shape[1:])
+		self.indices = np.zeros((inputs.shape[0],) + self.output_shape[1:])
+		for n in xrange(inputs.shape[0]):
+			for k in xrange(inputs.shape[1]):
+				for i_pool in xrange(self.output_shape[2]):
+					i = i_pool * self.size
+					for j_pool in xrange(self.output_shape[3]):
+						j = j_pool * self.size
+						split = inputs[n][k][i:i+self.size, j:j+self.size]
+						acts[n][k][i_pool][j_pool] = np.max(split)
+						self.indices[n][k][i_pool][j_pool] = np.argmax(split)
+		return acts
+
+	def _backward(self, gradient):
+		prop = np.zeros((gradient.shape[0],) + self.input_shape[1:])
+		for n in xrange(gradient.shape[0]):
+			for k in xrange(gradient.shape[1]):
+				for i_pool in xrange(gradient.shape[2]):
+					for j_pool in xrange(gradient.shape[3]):
+						ind = int(self.indices[n][k][i_pool][j_pool])
+						i = i_pool * self.size + ind / self.size
+						j = j_pool * self.size + ind % self.size
+						prop[n][k][i][j] = gradient[n][k][i_pool][j_pool]
+		self.indices = None
+		return prop
 
 class ReLuLayer(Layer):
 	""" An activation layer that uses the ReLu function. (max(0, input)) """
